@@ -1,0 +1,42 @@
+name: Workflow Execution
+on: 
+    workflow_dispatch:
+        inputs:
+            result:
+                description: 'Debe funcionar correctamente?'
+                type: choice
+                options:
+                    - SI
+                    - NO
+                default: SI
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        outputs:
+            build_status: ${{ steps.build.outputs.resultado == 'SI' && 'success' || 'fail' }}
+        steps:      
+            - name: 'Print GITHUB_OUTPUT path'       
+              run: |
+                echo "var -->> $GITHUB_OUTPUT"
+            - name: Build
+              id: build
+              run: |
+                echo "Building"
+                echo "variable=${{inputs.result}}" >> "$GITHUB_OUTPUT"
+
+    deploy:
+        runs-on: ubuntu-latest
+        if: ${{ needs.build.outputs.build_status == 'success' }}    
+        steps:      
+            - name: Deploy                                     
+              run: |
+                echo "Deploying"
+    rollback:
+      runs-on: ubuntu-latest
+      needs: build
+      if: ${{ needs.build.outputs.build_status != 'success' }}    
+      steps:      
+          - name: Rollback                                     
+            run: |
+              echo "Rollback"
+              exit 1
